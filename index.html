@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Derek & Kait Budget Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#f4f5fb; margin:0; color:#1f2933; }
+    .app-container { max-width:1100px; margin:24px auto 40px; background:#fff; border-radius:12px; padding:24px 28px 32px; box-shadow:0 2px 10px rgba(15,23,42,.12); }
+    h1 { margin:0 0 6px; font-size:1.6rem; text-align:center; }
+    .subtitle { text-align:center; font-size:.9rem; color:#6b7280; margin-bottom:10px; }
+
+    .top-bar{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px;}
+    .year-select-label{font-size:.9rem; color:#4b5563;}
+    select{padding:4px 8px; border-radius:6px; border:1px solid #d1d5db; font-size:.9rem;}
+
+    .month-tabs{display:flex; flex-wrap:wrap; gap:6px;}
+    .month-tab{padding:6px 10px; border-radius:999px; border:1px solid #d1d5db; background:#f9fafb; font-size:.8rem; cursor:pointer; transition:.15s;}
+    .month-tab.active{background:#1d4ed8; border-color:#1d4ed8; color:#fff;}
+
+    .view-toggle{display:flex; gap:8px; justify-content:center; margin-bottom:8px; flex-wrap:wrap;}
+    .view-btn{padding:6px 14px; border-radius:999px; border:1px solid #d1d5db; background:#f9fafb; font-size:.8rem; cursor:pointer; transition:.15s;}
+    .view-btn.active{background:#0f766e; border-color:#0f766e; color:#fff;}
+
+    .section{margin-top:22px;}
+    .section-title{font-size:1.1rem; font-weight:600; margin-bottom:6px;}
+    .section-subtitle{font-size:.85rem; color:#6b7280; margin-bottom:10px;}
+
+    table{width:100%; border-collapse:collapse; margin-top:6px; font-size:.85rem;}
+    th,td{border:1px solid #e5e7eb; padding:6px 8px; text-align:left; vertical-align:top;}
+    th{background:#f3f4f6; font-weight:600; font-size:.8rem;}
+    tbody tr:nth-child(even){background:#f9fafb;}
+
+    .bill-col{width:26%;}
+    .payoff-col{width:13%;}
+    .est-col{width:9%;}
+    .actual-col{width:8%; white-space:nowrap;}
+    .diff-col{width:10%;}
+    .due-col{width:6%;}
+    .freq-col{width:12%;}
+    .notes-col{width:3%; text-align:center;}
+    .actions-col{width:13%; white-space:nowrap; text-align:center;}
+
+    input[type="number"]{width:100%; box-sizing:border-box; padding:4px 6px; border-radius:6px; border:1px solid #d1d5db; font-size:.8rem;}
+    input[type="number"]:focus{outline:none; border-color:#2563eb; box-shadow:0 0 0 1px rgba(37,99,235,.12);}
+
+    textarea{width:100%; box-sizing:border-box; padding:6px 8px; border-radius:8px; border:1px solid #d1d5db; font-size:.85rem; resize:vertical; min-height:70px;}
+
+    .summary-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-top:10px;}
+    .summary-card{border-radius:10px; padding:10px 12px; background:#f9fafb; border:1px solid #e5e7eb;}
+    .summary-label{font-size:.75rem; text-transform:uppercase; color:#6b7280; margin-bottom:2px;}
+    .summary-value{font-size:1.05rem; font-weight:600;}
+    .summary-value.positive{color:#16a34a;}
+    .summary-value.negative{color:#b91c1c;}
+
+    .pill{display:inline-block; font-size:.75rem; padding:2px 7px; border-radius:999px; background:#eff6ff; color:#1d4ed8;}
+    .footer-note{margin-top:20px; font-size:.8rem; color:#6b7280; text-align:center;}
+
+    .add-bill-row{margin-top:8px; text-align:right;}
+    .add-bill-btn{padding:6px 10px; font-size:.8rem; border-radius:999px; border:1px solid #2563eb; background:#2563eb; color:#fff; cursor:pointer;}
+    .add-bill-btn:hover{background:#1d4ed8;}
+
+    .diff-positive{color:#16a34a; font-weight:600;}
+    .diff-negative{color:#b91c1c; font-weight:600;}
+    .diff-zero{color:#1d4ed8; font-weight:600;}
+    .money-display{white-space:nowrap;}
+
+    .icon-btn{padding:3px 6px; font-size:.9rem; border-radius:999px; border:1px solid #d1d5db; background:#f9fafb; cursor:pointer; margin:0 2px; line-height:1;}
+    .icon-btn:hover{background:#e5e7eb;}
+    .note-btn.note-empty{opacity:.35; background:#f3f4f6;}
+    .readonly-input{background:#e5e7f9!important; cursor:not-allowed;}
+
+    /* Breakdown modal */
+    #breakdownOverlay{position:fixed; inset:0; background:rgba(15,23,42,.45); display:none; align-items:center; justify-content:center; z-index:9999;}
+    #breakdownModal{background:#fff; border-radius:12px; padding:16px 18px 18px; max-width:520px; width:92%; box-shadow:0 10px 25px rgba(15,23,42,.3);}
+    #breakdownModal h2{margin:0 0 8px; font-size:1rem;}
+    #breakdownModal .breakdown-desc{font-size:.8rem; color:#6b7280; margin-bottom:8px;}
+    #breakdownModal table{font-size:.8rem; margin-top:8px;}
+    #breakdownModal th,#breakdownModal td{padding:4px 6px;}
+    #breakdownModal input[type="text"], #breakdownModal input[type="number"]{width:100%; box-sizing:border-box; padding:3px 4px; border-radius:4px; border:1px solid #d1d5db; font-size:.8rem;}
+    #breakdownModal input[type="number"]{text-align:right;}
+    .breakdown-actions{display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:6px; flex-wrap:wrap;}
+    .breakdown-btn{padding:6px 10px; border-radius:999px; border:1px solid #d1d5db; background:#f9fafb; font-size:.8rem; cursor:pointer;}
+    .breakdown-btn.primary{border-color:#2563eb; background:#2563eb; color:#fff;}
+    .breakdown-row-remove-btn{padding:2px 6px; font-size:.7rem; border-radius:999px; border:1px solid #fecaca; background:#fee2e2; color:#b91c1c; cursor:pointer;}
+    .breakdown-row-remove-btn:hover{background:#fecaca;}
+
+    /* Row editor */
+    .note-edit-btn{padding:6px 12px; font-size:.8rem; border-radius:999px; border:1px solid #d1d5db; background:#f9fafb; cursor:pointer;}
+    .note-edit-btn.save{border-color:#2563eb; background:#2563eb; color:#fff;}
+
+    /* Sync badge */
+    #syncBadge{
+      display:inline-flex; align-items:center; gap:6px;
+      font-size:.75rem; padding:3px 8px; border-radius:999px;
+      border:1px solid #d1d5db; background:#f9fafb; color:#374151;
+    }
+    #syncDot{width:8px; height:8px; border-radius:50%; background:#9ca3af;}
+    #syncBadge.saving #syncDot{background:#f59e0b;}
+    #syncBadge.saved  #syncDot{background:#16a34a;}
+    #syncBadge.error  #syncDot{background:#b91c1c;}
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <h1>Derek &amp; Kait Budget Tracker</h1>
+    <div class="subtitle">
+      Bi-weekly income &amp; monthly obligations with Estimated vs Actual per month.
+      &nbsp; <span id="syncBadge" title="Sheets sync status"><span id="syncDot"></span><span id="syncText">Local</span></span>
+    </div>
+
+    <div class="view-toggle">
+      <button id="viewMonthlyBtn" class="view-btn active">Monthly Detail</button>
+      <button id="viewSummaryBtn" class="view-btn">Yearly Summary</button>
+    </div>
+
+    <div class="top-bar">
+      <div>
+        <span class="year-select-label">Year:&nbsp;</span>
+        <select id="yearSelect"></select>
+      </div>
+      <div class="month-tabs" id="monthTabs"></div>
+    </div>
+
+    <!-- MONTHLY VIEW -->
+    <div id="monthlyView">
+      <div class="section">
+        <div class="section-title">Income for <span id="currentMonthLabel"></span></div>
+        <div class="section-subtitle">
+          Derek: 1/9/2026 – $3,050 every 2 weeks &nbsp; | &nbsp; Kait: 1/2/2026 – $1,500 every 2 weeks.
+        </div>
+        <table id="incomeTable">
+          <thead><tr><th>Date</th><th>Source</th><th>Amount</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Monthly Bills – <span id="currentMonthLabelBills"></span></div>
+        <div class="section-subtitle">
+          <strong>Est Monthly</strong> is your estimate for this specific month.
+          For Weekly / Per-paycheck items, use the <strong>📋</strong> Breakdown button to enter per-week/paycheck lines.
+          <span class="pill">Due Day disabled when Weekly or Per Paycheck</span>
+        </div>
+
+        <table id="billsTable">
+          <thead>
+            <tr>
+              <th class="bill-col">Bill</th>
+              <th class="est-col">Est Monthly</th>
+              <th class="actual-col">Actual</th>
+              <th class="diff-col">Difference</th>
+              <th class="due-col">Due</th>
+              <th class="freq-col">Frequency</th>
+              <th class="notes-col">Notes</th>
+              <th class="actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div class="add-bill-row">
+          <button id="addBillBtn" class="add-bill-btn">+ Add Bill / Expense</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Credit Cards – <span id="currentMonthLabelCC"></span></div>
+        <div class="section-subtitle">Payoff + minimums (all editable per month if you want).</div>
+
+        <table id="ccTable">
+          <thead>
+            <tr>
+              <th class="bill-col">Card</th>
+              <th class="payoff-col">Payoff Amount</th>
+              <th class="est-col">Est Monthly</th>
+              <th class="actual-col">Actual</th>
+              <th class="diff-col">Difference</th>
+              <th class="due-col">Due</th>
+              <th class="freq-col">Frequency</th>
+              <th class="notes-col">Notes</th>
+              <th class="actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Loans – <span id="currentMonthLabelLoans"></span></div>
+        <div class="section-subtitle">Loan payoff + minimums (editable per month).</div>
+
+        <table id="loansTable">
+          <thead>
+            <tr>
+              <th class="bill-col">Loan</th>
+              <th class="payoff-col">Payoff Amount</th>
+              <th class="est-col">Est Monthly</th>
+              <th class="actual-col">Actual</th>
+              <th class="diff-col">Difference</th>
+              <th class="due-col">Due</th>
+              <th class="freq-col">Frequency</th>
+              <th class="notes-col">Notes</th>
+              <th class="actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Monthly Summary</div>
+        <div class="summary-grid">
+          <div class="summary-card"><div class="summary-label">Total Income</div><div class="summary-value" id="totalIncome">$0.00</div></div>
+          <div class="summary-card"><div class="summary-label">Estimated Bills + Debt</div><div class="summary-value" id="totalEstBills">$0.00</div></div>
+          <div class="summary-card"><div class="summary-label">Actual Bills + Debt</div><div class="summary-value" id="totalActualBills">$0.00</div></div>
+          <div class="summary-card"><div class="summary-label">Est Leftover</div><div class="summary-value" id="estLeftover">$0.00</div></div>
+          <div class="summary-card"><div class="summary-label">Actual Leftover</div><div class="summary-value" id="actualLeftover">$0.00</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUMMARY VIEW -->
+    <div id="summaryView" style="display:none;">
+      <div class="section">
+        <div class="section-title">Yearly Overview – <span id="summaryYearLabel"></span></div>
+        <div class="section-subtitle">
+          “Year to Date” means <strong>January through the currently selected month</strong>.
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-card"><div class="summary-label">Total Income (Year)</div><div class="summary-value" id="summaryYearIncome">$0.00</div></div>
+          <div class="summary-card"><div class="summary-label">Estimated Bills + Debt (Year)</div><div class="summary-value" id="summaryYearEstBills">$0.00</div></div>
+          <div class="summary-card"><div class="summary-label">Actual Bills + Debt (Year to Date)</div><div class="summary-value" id="summaryYearActualBills">$0.00</div></div>
+          <div class="summary-card"><div class="summary-label">Estimated Leftover (Year)</div><div class="summary-value" id="summaryYearEstLeftover">$0.00</div></div>
+          <div class="summary-card"><div class="summary-label">Actual Leftover (Year to Date)</div><div class="summary-value" id="summaryYearActualLeftover">$0.00</div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Debt Snapshot (Simple)</div>
+        <div class="section-subtitle">Rough payoff months: payoff ÷ this month’s estimated payment.</div>
+        <table id="debtSnapshotTable">
+          <thead><tr><th>Debt</th><th>Payoff Amount</th><th>Est Monthly</th><th>Months to Payoff (approx)</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Spending Breakdown – <span id="summaryMonthLabel"></span></div>
+        <div class="section-subtitle">Category totals for the selected month, based on Estimated vs Actual.</div>
+        <table id="spendingBreakdownTable">
+          <thead><tr><th>Category</th><th>Est Total</th><th>Actual Total</th><th>Difference</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Breakdown modal -->
+    <div id="breakdownOverlay">
+      <div id="breakdownModal">
+        <h2 id="breakdownTitle"></h2>
+        <div class="breakdown-desc" id="breakdownDesc"></div>
+        <table>
+          <thead><tr><th>Label</th><th>Est</th><th>Actual</th><th></th></tr></thead>
+          <tbody id="breakdownTableBody"></tbody>
+        </table>
+        <div class="breakdown-actions">
+          <div><button type="button" id="breakdownAddRowBtn" class="breakdown-btn">+ Add Row</button></div>
+          <div>
+            <button type="button" id="breakdownCancelBtn" class="breakdown-btn">Cancel</button>
+            <button type="button" id="breakdownSaveBtn" class="breakdown-btn primary">Save Breakdown</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      Tip: Once you switch to Sheets storage, your data follows you everywhere.
+    </div>
+  </div>
+
+  <script>
+    // =========================================================
+    // GOOGLE SHEETS SETTINGS (optional)
+    // =========================================================
+    // If you haven't set up the Apps Script API yet, leave USE_SHEETS_STORAGE = false.
+    const USE_SHEETS_STORAGE = tru; // <- set true when ready
+
+    // Paste your Apps Script Web App URL here:
+    const SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbxXnExHqoLpjJ-YEqzB7OuElZPgc9tqsiLnDJmrOhLZ_PoKnBFPokaAgvU_O8M9LQzM/exec";
+
+    // If your Apps Script uses a token, paste it here (must match Code.gs). Otherwise leave "".
+    const SHEETS_API_TOKEN = "AKfycbxXnExHqoLpjJ-YEqzB7OuElZPgc9tqsiLnDJmrOhLZ_PoKnBFPokaAgvU_O8M9LQzMRE";
+
+    // =========================================================
+    // SYNC BADGE UI
+    // =========================================================
+    const syncBadge = document.getElementById("syncBadge");
+    const syncText  = document.getElementById("syncText");
+    function setSyncState(state, text) {
+      syncBadge.classList.remove("saving","saved","error");
+      if (state) syncBadge.classList.add(state);
+      syncText.textContent = text;
+    }
+    setSyncState("", USE_SHEETS_STORAGE ? "Connecting..." : "Local");
+
+    // =========================================================
+    // STORAGE WRAPPER (localStorage OR Google Sheets)
+    // =========================================================
+    const Storage = (() => {
+      const cache = new Map();
+      const dirty = new Map();
+      let flushTimer = null;
+      let primed = false;
+
+      function lsGet(k){ return localStorage.getItem(k); }
+      function lsSet(k,v){ localStorage.setItem(k, String(v)); }
+      function lsDel(k){ localStorage.removeItem(k); }
+
+      async function sheetsGetByPrefix(prefix) {
+        const url = new URL(SHEETS_API_URL);
+        url.searchParams.set("mode", "get");
+        url.searchParams.set("prefix", prefix);
+        if (SHEETS_API_TOKEN) url.searchParams.set("token", SHEETS_API_TOKEN);
+        const res = await fetch(url.toString());
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || "Sheets get failed");
+        return json.data || {};
+      }
+
+      async function sheetsSetBatch(items) {
+        const res = await fetch(SHEETS_API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode:"set", token: SHEETS_API_TOKEN || "", items })
+        });
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || "Sheets set failed");
+        return json;
+      }
+
+      async function primeAllBudgetKeys() {
+        if (!USE_SHEETS_STORAGE) return;
+        setSyncState("saving", "Connecting...");
+        const all = await sheetsGetByPrefix("budget_");
+        Object.keys(all).forEach(k => cache.set(k, all[k]));
+        primed = true;
+        setSyncState("saved", "Synced");
+      }
+
+      function getItem(key) {
+        if (!USE_SHEETS_STORAGE) return lsGet(key);
+        return cache.has(key) ? cache.get(key) : null;
+      }
+
+      function setItem(key, value) {
+        if (!USE_SHEETS_STORAGE) return lsSet(key, value);
+        cache.set(key, String(value));
+        dirty.set(key, String(value));
+        scheduleFlush();
+      }
+
+      function removeItem(key) {
+        if (!USE_SHEETS_STORAGE) return lsDel(key);
+        cache.delete(key);
+        dirty.set(key, ""); // interpreted as delete
+        scheduleFlush();
+      }
+
+      function scheduleFlush() {
+        if (!USE_SHEETS_STORAGE) return;
+        if (!primed) return;
+        if (flushTimer) return;
+        flushTimer = setTimeout(flush, 300);
+        setSyncState("saving", "Saving...");
+      }
+
+      async function flush() {
+        flushTimer = null;
+        if (!USE_SHEETS_STORAGE) return;
+        if (dirty.size === 0) { setSyncState("saved", "Synced"); return; }
+
+        const payload = {};
+        dirty.forEach((v,k) => payload[k] = v);
+        dirty.clear();
+
+        try {
+          await sheetsSetBatch(payload);
+          setSyncState("saved", "Synced");
+        } catch (e) {
+          console.error(e);
+          setSyncState("error", "Sync error");
+          alert("Could not save to Google Sheet. Check your Apps Script URL, deployment access, and token.");
+        }
+      }
+
+      return { primeAllBudgetKeys, getItem, setItem, removeItem, flush };
+    })();
+
+    // =========================
+    // CONFIG DATA
+    // =========================
+    const incomes = [
+      { name: "Derek Paycheck", amount: 3050, startDate: "2026-01-09" },
+      { name: "Kait Paycheck", amount: 1500, startDate: "2026-01-02" }
+    ];
+
+    const baseBills = [
+      { name: "Christmas Club", est: 100.00, freq: "Per Kait Paycheck", defaultNotes: "$50 out of each of Kait’s paychecks" },
+      { name: "Bug Out", est: 50.00, freq: "Monthly", defaultDue: 28 },
+      { name: "City", est: 60.00, freq: "Monthly", defaultDue: 28 },
+      { name: "Ameren", est: 200.00, freq: "Monthly", defaultDue: 21 },
+      { name: "TV", est: 120.00, freq: "Monthly", defaultDue: 22 },
+      { name: "Internet", est: 65.00, freq: "Monthly", defaultDue: 10 },
+      { name: "Phones", est: 170.00, freq: "Monthly", defaultDue: 22 },
+      { name: "Storage", est: 75.00, freq: "Monthly", defaultDue: 10 },
+      { name: "Daycare", est: 57.00, freq: "Weekly", defaultNotes: "Once every week" },
+      { name: "Ins", est: 207.00, freq: "Monthly", defaultDue: 26 },
+      { name: "Fink", est: 88.00, freq: "Monthly", defaultDue: 1 },
+      { name: "Hello Fresh", est: 520.00, freq: "Weekly", defaultNotes: "$128 every week" },
+      { name: "Lincare", est: 80.00, freq: "Monthly", defaultDue: 15 },
+      { name: "Walmart", est: 1000.00, freq: "Weekly", defaultNotes: "$200 every week" },
+      { name: "Gas", est: 200.00, freq: "Weekly", defaultNotes: "$50 per week" },
+      { name: "Apple", est: 26.00, freq: "Monthly", defaultDue: 28 },
+      { name: "Kait Meds", est: 85.00, freq: "Monthly", defaultDue: 28 },
+      { name: "Derek Meds", est: 150.00, freq: "Monthly", defaultDue: 28 },
+      { name: "Amazon", est: 20.00, freq: "Monthly", defaultDue: 8 },
+      { name: "St. Brendan", est: 578.00, freq: "Monthly", defaultDue: 28 },
+      { name: "Water Bill", est: 60.00, freq: "Monthly", defaultDue: 26 },
+      { name: "Parents Cleaning", est: 150.00, freq: "Monthly", defaultDue: 1 }
+    ];
+
+    const creditCards = [
+      { name: "Discover", payoff: 1650.00, est: 58.00, freq: "Monthly", defaultDue: 1 },
+      { name: "Paypal", payoff: 3445.00, est: 111.00, freq: "Monthly", defaultDue: 1 },
+      { name: "Home Depot", payoff: 2175.00, est: 52.00, freq: "Monthly", defaultDue: 21 },
+      { name: "Lowes", payoff: 3735.00, est: 38.00, freq: "Monthly", defaultDue: 4 },
+      { name: "Slumberland", payoff: 9710.00, est: 278.00, freq: "Monthly", defaultDue: 12 },
+      { name: "Care Credit (Derek)", payoff: 638.00, est: 100.00, freq: "Monthly", defaultDue: 26 },
+      { name: "Care Credit (Kait)", payoff: 2000.00, est: 75.00, freq: "Monthly", defaultDue: 28 }
+    ];
+
+    const loans = [
+      { name: "Derek Truck", payoff: 28865.00, est: 723.00, freq: "Monthly", defaultNotes: "$362 every Derek paycheck" },
+      { name: "House", payoff: 195169.00, est: 1159.00, freq: "Monthly", defaultDue: 1 },
+      { name: "Derek SL (Firstmark)", payoff: 56965.00, est: 460.00, freq: "Monthly", defaultDue: 17 },
+      { name: "Kait's Car", payoff: 47000.00, est: 900.00, freq: "Monthly", defaultDue: 1 }
+    ];
+
+    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+    // =========================
+    // HELPERS + KEYS (MONTH-SPECIFIC!)
+    // =========================
+    function slugify(str){ return str.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,""); }
+    function formatCurrency(amount){
+      const num = Number(amount) || 0;
+      return num.toLocaleString("en-US",{style:"currency",currency:"USD",minimumFractionDigits:2,maximumFractionDigits:2});
+    }
+    function shouldDisableDue(freq){ return (freq === "Weekly" || freq === "Per Kait Paycheck" || freq === "Per Derek Paycheck"); }
+
+    function keyEst(category, year, monthIndex, slug)      { return `budget_est_${category}_${year}_${monthIndex}_${slug}`; }
+    function keyActual(category, year, monthIndex, slug)    { return `budget_actual_${category}_${year}_${monthIndex}_${slug}`; }
+    function keyNotes(category, year, monthIndex, slug)     { return `budget_notes_${category}_${year}_${monthIndex}_${slug}`; }
+    function keyBreakdown(category, year, monthIndex, slug) { return `budget_breakdown_${category}_${year}_${monthIndex}_${slug}`; }
+
+    // THESE ARE NOW PER-MONTH:
+    function keyFreq(category, year, monthIndex, slug)      { return `budget_freq_${category}_${year}_${monthIndex}_${slug}`; }
+    function keyDue(category, year, monthIndex, slug)       { return `budget_due_${category}_${year}_${monthIndex}_${slug}`; }
+    function keyPayoff(category, year, monthIndex, slug)    { return `budget_payoff_${category}_${year}_${monthIndex}_${slug}`; }
+
+    function getCustomBills(){
+      const raw = Storage.getItem("budget_custom_bills");
+      if (!raw) return [];
+      try { const parsed = JSON.parse(raw); if (Array.isArray(parsed)) return parsed; } catch(e){}
+      return [];
+    }
+    function saveCustomBills(arr){ Storage.setItem("budget_custom_bills", JSON.stringify(arr)); }
+    function getAllBills(){ return baseBills.concat(getCustomBills()); }
+
+    function getEffectiveEst(category, baseEst, slug, year, monthIndex){
+      const saved = parseFloat(Storage.getItem(keyEst(category,year,monthIndex,slug)));
+      return isNaN(saved) ? baseEst : saved;
+    }
+    function getEffectivePayoff(category, basePayoff, slug, year, monthIndex){
+      const saved = parseFloat(Storage.getItem(keyPayoff(category,year,monthIndex,slug)));
+      return isNaN(saved) ? basePayoff : saved;
+    }
+
+    function getMonthlyIncome(year, monthIndex){
+      let total=0; const rows=[];
+      const monthEnd = new Date(year, monthIndex+1, 0, 23, 59, 59);
+      incomes.forEach(src=>{
+        let d = new Date(src.startDate+"T00:00:00");
+        if (d>monthEnd) return;
+        while(d<=monthEnd){
+          if (d.getFullYear()===year && d.getMonth()===monthIndex){
+            total += src.amount;
+            rows.push({date:new Date(d), name:src.name, amount:src.amount});
+          }
+          d.setDate(d.getDate()+14);
+        }
+      });
+      rows.sort((a,b)=>a.date-b.date);
+      return { total, rows };
+    }
+
+    function setDiffCell(est, actual, diffTd){
+      if (actual===null || actual===undefined || isNaN(actual)){
+        diffTd.textContent = "";
+        diffTd.classList.remove("diff-positive","diff-negative","diff-zero");
+        return;
+      }
+      const diff = est - actual;
+      diffTd.textContent = formatCurrency(diff);
+      diffTd.classList.remove("diff-positive","diff-negative","diff-zero");
+      if (diff>0) diffTd.classList.add("diff-positive");
+      else if (diff<0) diffTd.classList.add("diff-negative");
+      else diffTd.classList.add("diff-zero");
+    }
+
+    // =========================
+    // ELEMENTS
+    // =========================
+    const yearSelect = document.getElementById("yearSelect");
+    const monthTabs = document.getElementById("monthTabs");
+    const currentMonthLabel = document.getElementById("currentMonthLabel");
+    const currentMonthLabelBills = document.getElementById("currentMonthLabelBills");
+    const currentMonthLabelCC = document.getElementById("currentMonthLabelCC");
+    const currentMonthLabelLoans = document.getElementById("currentMonthLabelLoans");
+
+    const incomeTableBody = document.querySelector("#incomeTable tbody");
+    const billsTableBody = document.querySelector("#billsTable tbody");
+    const ccTableBody = document.querySelector("#ccTable tbody");
+    const loansTableBody = document.querySelector("#loansTable tbody");
+
+    const totalIncomeEl = document.getElementById("totalIncome");
+    const totalEstBillsEl = document.getElementById("totalEstBills");
+    const totalActualBillsEl = document.getElementById("totalActualBills");
+    const estLeftoverEl = document.getElementById("estLeftover");
+    const actualLeftoverEl = document.getElementById("actualLeftover");
+
+    const addBillBtn = document.getElementById("addBillBtn");
+
+    const monthlyView = document.getElementById("monthlyView");
+    const summaryView = document.getElementById("summaryView");
+    const viewMonthlyBtn = document.getElementById("viewMonthlyBtn");
+    const viewSummaryBtn = document.getElementById("viewSummaryBtn");
+
+    // Breakdown modal
+    const breakdownOverlay = document.getElementById("breakdownOverlay");
+    const breakdownTitleEl = document.getElementById("breakdownTitle");
+    const breakdownDescEl = document.getElementById("breakdownDesc");
+    const breakdownTableBody = document.getElementById("breakdownTableBody");
+    const breakdownAddRowBtn = document.getElementById("breakdownAddRowBtn");
+    const breakdownCancelBtn = document.getElementById("breakdownCancelBtn");
+    const breakdownSaveBtn = document.getElementById("breakdownSaveBtn");
+
+    let currentBreakdownContext = null;
+    let selectedYear;
+    let selectedMonthIndex;
+
+    // =========================
+    // ROW EDITOR (opens beneath row)
+    // =========================
+    function closeAnyOpenEditorWithin(tbody){
+      const open = tbody.querySelector(".row-edit-tr");
+      if (open) open.remove();
+    }
+
+    function toggleRowEditor(mainRow, options){
+      const { category, item, slug, year, monthIdx, hasPayoff } = options;
+
+      const nextRow = mainRow.nextElementSibling;
+      if (nextRow && nextRow.classList.contains("row-edit-tr")) { nextRow.remove(); return; }
+
+      closeAnyOpenEditorWithin(mainRow.parentElement);
+
+      const editorTr = document.createElement("tr");
+      editorTr.className = "row-edit-tr";
+
+      const editorTd = document.createElement("td");
+      editorTd.colSpan = mainRow.children.length;
+      editorTd.style.background = "#eef2ff";
+      editorTd.style.borderTop = "none";
+      editorTd.style.borderBottom = "1px solid #c7d2fe";
+
+      const wrap = document.createElement("div");
+      wrap.style.padding = "10px 8px";
+
+      const title = document.createElement("div");
+      title.style.fontSize = "0.85rem";
+      title.style.marginBottom = "8px";
+      title.innerHTML = `Editing <strong>${item.name}</strong> (${monthNames[monthIdx]} ${year})`;
+      wrap.appendChild(title);
+
+      const estKeyStr = keyEst(category, year, monthIdx, slug);
+      const freqKeyStr = keyFreq(category, year, monthIdx, slug);
+      const dueKeyStr  = keyDue(category, year, monthIdx, slug);
+      const notesKeyStr = keyNotes(category, year, monthIdx, slug);
+
+      const currentEst = getEffectiveEst(category, item.est, slug, year, monthIdx);
+      const currentFreq = Storage.getItem(freqKeyStr) || item.freq || "Monthly";
+      const currentDue = Storage.getItem(dueKeyStr) || item.defaultDue || "";
+      const currentNotes = Storage.getItem(notesKeyStr) || item.defaultNotes || "";
+
+      let payoffKeyStr = null;
+      let currentPayoff = null;
+      if (hasPayoff){
+        payoffKeyStr = keyPayoff(category, year, monthIdx, slug);
+        currentPayoff = getEffectivePayoff(category, item.payoff, slug, year, monthIdx);
+      }
+
+      const grid = document.createElement("div");
+      grid.style.display = "grid";
+      grid.style.gridTemplateColumns = hasPayoff ? "repeat(4, minmax(140px, 1fr))" : "repeat(3, minmax(160px, 1fr))";
+      grid.style.gap = "8px";
+      grid.style.alignItems = "end";
+
+      function makeField(labelText, inputEl){
+        const box = document.createElement("div");
+        const lbl = document.createElement("div");
+        lbl.style.fontSize = "0.72rem";
+        lbl.style.color = "#6b7280";
+        lbl.style.marginBottom = "2px";
+        lbl.textContent = labelText;
+        box.appendChild(lbl);
+        box.appendChild(inputEl);
+        return box;
+      }
+
+      let payoffInput = null;
+      if (hasPayoff){
+        payoffInput = document.createElement("input");
+        payoffInput.type = "number"; payoffInput.step="0.01"; payoffInput.min="0";
+        payoffInput.value = (Number(currentPayoff)||0).toFixed(2);
+        grid.appendChild(makeField("Payoff Amount", payoffInput));
+      }
+
+      const estInput = document.createElement("input");
+      estInput.type="number"; estInput.step="0.01"; estInput.min="0";
+      estInput.value = (Number(currentEst)||0).toFixed(2);
+      grid.appendChild(makeField("Est Monthly", estInput));
+
+      const freqSelect = document.createElement("select");
+      ["Monthly","Weekly","Per Kait Paycheck","Per Derek Paycheck"].forEach(v=>{
+        const opt=document.createElement("option");
+        opt.value=v; opt.textContent=v; freqSelect.appendChild(opt);
+      });
+      freqSelect.value = currentFreq;
+      freqSelect.style.width="100%";
+      grid.appendChild(makeField("Frequency", freqSelect));
+
+      const dueInput = document.createElement("input");
+      dueInput.type="number"; dueInput.min="1"; dueInput.max="31"; dueInput.placeholder="Day";
+      dueInput.value = currentDue ? String(currentDue) : "";
+      grid.appendChild(makeField("Due Day", dueInput));
+
+      function refreshDueDisabled(){
+        if (shouldDisableDue(freqSelect.value)){
+          dueInput.value = "";
+          dueInput.disabled = true;
+          dueInput.classList.add("readonly-input");
+          dueInput.placeholder = "N/A";
+        } else {
+          dueInput.disabled = false;
+          dueInput.classList.remove("readonly-input");
+          dueInput.placeholder = "Day";
+        }
+      }
+      refreshDueDisabled();
+      freqSelect.addEventListener("change", refreshDueDisabled);
+
+      wrap.appendChild(grid);
+
+      const notesWrap = document.createElement("div");
+      notesWrap.style.marginTop="10px";
+      const notesLbl = document.createElement("div");
+      notesLbl.style.fontSize="0.72rem";
+      notesLbl.style.color="#6b7280";
+      notesLbl.style.marginBottom="2px";
+      notesLbl.textContent="Notes";
+      notesWrap.appendChild(notesLbl);
+
+      const notesTextarea = document.createElement("textarea");
+      notesTextarea.value = currentNotes;
+      notesWrap.appendChild(notesTextarea);
+      wrap.appendChild(notesWrap);
+
+      const btnRow = document.createElement("div");
+      btnRow.style.display="flex";
+      btnRow.style.justifyContent="flex-end";
+      btnRow.style.gap="8px";
+      btnRow.style.marginTop="10px";
+
+      const cancelBtn = document.createElement("button");
+      cancelBtn.type="button"; cancelBtn.className="note-edit-btn"; cancelBtn.textContent="Cancel";
+      cancelBtn.addEventListener("click", ()=>editorTr.remove());
+
+      const saveBtn = document.createElement("button");
+      saveBtn.type="button"; saveBtn.className="note-edit-btn save"; saveBtn.textContent="Save";
+
+      saveBtn.addEventListener("click", ()=>{
+        if (hasPayoff && payoffKeyStr){
+          const p=parseFloat(payoffInput.value);
+          if (!isNaN(p)) Storage.setItem(payoffKeyStr, p);
+          else Storage.removeItem(payoffKeyStr);
+        }
+
+        const e=parseFloat(estInput.value);
+        if (!isNaN(e)) Storage.setItem(estKeyStr, e);
+        else Storage.removeItem(estKeyStr);
+
+        Storage.setItem(freqKeyStr, freqSelect.value);
+
+        if (!shouldDisableDue(freqSelect.value)){
+          const dStr=(dueInput.value||"").trim();
+          if (dStr){
+            const d=parseInt(dStr,10);
+            if (isNaN(d) || d<1 || d>31){ alert("Please enter a valid due day (1-31) or leave blank."); return; }
+            Storage.setItem(dueKeyStr, String(d));
+          } else {
+            Storage.removeItem(dueKeyStr);
+          }
+        } else {
+          Storage.removeItem(dueKeyStr);
+        }
+
+        const n=(notesTextarea.value||"").trim();
+        if (n) Storage.setItem(notesKeyStr, n);
+        else Storage.removeItem(notesKeyStr);
+
+        renderForSelection();
+      });
+
+      btnRow.appendChild(cancelBtn);
+      btnRow.appendChild(saveBtn);
+      wrap.appendChild(btnRow);
+
+      editorTd.appendChild(wrap);
+      editorTr.appendChild(editorTd);
+      mainRow.parentNode.insertBefore(editorTr, mainRow.nextSibling);
+    }
+
+    // =========================
+    // BREAKDOWN MODAL
+    // =========================
+    function openBreakdownModal(context){
+      currentBreakdownContext = context;
+      const { name, freqVal, year, monthIndex, baseMonthlyEst, slug, category } = context;
+
+      breakdownTitleEl.textContent = `${name} – ${monthNames[monthIndex]} ${year} Breakdown`;
+      if (freqVal==="Weekly") breakdownDescEl.textContent = "Create one row per week. We sum them for this month.";
+      else if (freqVal==="Per Kait Paycheck" || freqVal==="Per Derek Paycheck") breakdownDescEl.textContent = "Create one row per paycheck. We sum them for this month.";
+      else breakdownDescEl.textContent = "Optional breakdown.";
+
+      breakdownTableBody.innerHTML = "";
+
+      const bKey = keyBreakdown(category, year, monthIndex, slug);
+      const saved = Storage.getItem(bKey);
+
+      let rows = [];
+      let defaultCount = (freqVal==="Weekly") ? 4 : (freqVal.includes("Paycheck") ? 2 : 1);
+      let perOccurrence = baseMonthlyEst / (defaultCount || 1);
+
+      if (saved){
+        try{
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length){
+            rows = parsed;
+            const sumEst = rows.reduce((a,r)=>a+(parseFloat(r.est)||0),0);
+            perOccurrence = rows.length ? sumEst/rows.length : perOccurrence;
+          }
+        }catch(e){}
+      }
+
+      if (rows.length===0){
+        for (let i=0;i<defaultCount;i++){
+          let label = "Part " + (i+1);
+          if (freqVal==="Weekly") label = `Week ${i+1}`;
+          if (freqVal==="Per Kait Paycheck") label = `Kait Paycheck ${i+1}`;
+          if (freqVal==="Per Derek Paycheck") label = `Derek Paycheck ${i+1}`;
+          rows.push({ label, est: perOccurrence.toFixed(2), actual: "" });
+        }
+      }
+
+      currentBreakdownContext.perOccurrence = perOccurrence;
+      rows.forEach(r=>addBreakdownRow(r));
+      breakdownOverlay.style.display="flex";
+    }
+
+    function closeBreakdownModal(){
+      breakdownOverlay.style.display="none";
+      currentBreakdownContext=null;
+      breakdownTableBody.innerHTML="";
+    }
+
+    function addBreakdownRow(rowData){
+      const tr=document.createElement("tr");
+
+      const labelTd=document.createElement("td");
+      const estTd=document.createElement("td");
+      const actualTd=document.createElement("td");
+      const removeTd=document.createElement("td");
+
+      const labelInput=document.createElement("input");
+      labelInput.type="text"; labelInput.className="bd-label";
+      labelInput.value=rowData.label||"";
+      labelTd.appendChild(labelInput);
+
+      const estInput=document.createElement("input");
+      estInput.type="number"; estInput.step="0.01"; estInput.min="0";
+      estInput.className="bd-est"; estInput.value=(rowData.est??"");
+      estTd.appendChild(estInput);
+
+      const actualInput=document.createElement("input");
+      actualInput.type="number"; actualInput.step="0.01"; actualInput.min="0";
+      actualInput.className="bd-actual"; actualInput.value=(rowData.actual??"");
+      actualTd.appendChild(actualInput);
+
+      const removeBtn=document.createElement("button");
+      removeBtn.type="button"; removeBtn.className="breakdown-row-remove-btn"; removeBtn.textContent="✕";
+      removeBtn.addEventListener("click", ()=>{
+        if (breakdownTableBody.children.length<=1){ alert("You must keep at least one row."); return; }
+        tr.remove();
+      });
+      removeTd.appendChild(removeBtn);
+
+      tr.append(labelTd, estTd, actualTd, removeTd);
+      breakdownTableBody.appendChild(tr);
+    }
+
+    breakdownAddRowBtn.addEventListener("click", ()=>{
+      if (!currentBreakdownContext) return;
+      const p = currentBreakdownContext.perOccurrence || 0;
+      addBreakdownRow({ label:"Extra", est: (Number(p)||0).toFixed(2), actual:"" });
+    });
+    breakdownCancelBtn.addEventListener("click", closeBreakdownModal);
+
+    breakdownSaveBtn.addEventListener("click", ()=>{
+      if (!currentBreakdownContext) return;
+      const { category, slug, year, monthIndex } = currentBreakdownContext;
+
+      const rows=[];
+      Array.from(breakdownTableBody.children).forEach((tr, idx)=>{
+        const label=(tr.querySelector(".bd-label").value||"").trim() || `Item ${idx+1}`;
+        const estVal=parseFloat(tr.querySelector(".bd-est").value);
+        const actualVal=parseFloat(tr.querySelector(".bd-actual").value);
+        rows.push({ label, est: isNaN(estVal)?0:estVal, actual: isNaN(actualVal)?"":actualVal });
+      });
+
+      Storage.setItem(keyBreakdown(category,year,monthIndex,slug), JSON.stringify(rows));
+
+      const estSum = rows.reduce((a,r)=>a+(parseFloat(r.est)||0),0);
+      const actualSum = rows.reduce((a,r)=>a+(parseFloat(r.actual)||0),0);
+
+      Storage.setItem(keyEst(category,year,monthIndex,slug), estSum);
+      if (actualSum>0) Storage.setItem(keyActual(category,year,monthIndex,slug), actualSum);
+      else Storage.removeItem(keyActual(category,year,monthIndex,slug));
+
+      closeBreakdownModal();
+      renderForSelection();
+    });
+
+    // =========================
+    // INIT YEAR & MONTH
+    // =========================
+    function initYearSelect(){
+      const startYear=2026;
+      const now=new Date();
+      const endYear=startYear+5;
+      for (let y=startYear;y<=endYear;y++){
+        const opt=document.createElement("option");
+        opt.value=y; opt.textContent=y;
+        yearSelect.appendChild(opt);
+      }
+      yearSelect.value = now.getFullYear()<startYear ? startYear : now.getFullYear();
+      selectedYear = parseInt(yearSelect.value,10);
+
+      yearSelect.addEventListener("change", async ()=>{
+        selectedYear = parseInt(yearSelect.value,10);
+        renderForSelection();
+      });
+    }
+
+    function initMonthTabs(){
+      monthTabs.innerHTML="";
+      const now=new Date();
+      const defaultMonth=now.getMonth();
+      monthNames.forEach((m, idx)=>{
+        const btn=document.createElement("button");
+        btn.className="month-tab";
+        btn.textContent=m.slice(0,3);
+        btn.dataset.monthIndex=idx;
+        btn.addEventListener("click", ()=>{
+          selectedMonthIndex=idx;
+          updateActiveMonthTab();
+          renderForSelection();
+        });
+        monthTabs.appendChild(btn);
+        if (idx===defaultMonth) selectedMonthIndex=idx;
+      });
+      updateActiveMonthTab();
+    }
+
+    function updateActiveMonthTab(){
+      document.querySelectorAll(".month-tab").forEach(tab=>{
+        const idx=parseInt(tab.dataset.monthIndex,10);
+        tab.classList.toggle("active", idx===selectedMonthIndex);
+      });
+    }
+
+    // =========================
+    // INCOME
+    // =========================
+    function renderIncomeSection(){
+      const { total, rows } = getMonthlyIncome(selectedYear, selectedMonthIndex);
+      incomeTableBody.innerHTML="";
+      rows.forEach(r=>{
+        const tr=document.createElement("tr");
+        const d=r.date;
+        const dateStr=`${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}`;
+        tr.innerHTML = `<td>${dateStr}</td><td>${r.name}</td><td>${formatCurrency(r.amount)}</td>`;
+        incomeTableBody.appendChild(tr);
+      });
+      totalIncomeEl.textContent = formatCurrency(total);
+      return total;
+    }
+
+    // =========================
+    // TABLE RENDERERS
+    // =========================
+    function renderBillsTable(){
+      billsTableBody.innerHTML="";
+      const year=selectedYear, monthIdx=selectedMonthIndex;
+      const allBills=getAllBills();
+
+      allBills.forEach(bill=>{
+        const slug=slugify(bill.name);
+        const category="bill";
+
+        const freqVal = Storage.getItem(keyFreq(category,year,monthIdx,slug)) || bill.freq || "Monthly";
+        const repeating = shouldDisableDue(freqVal);
+
+        const effectiveEst = getEffectiveEst(category, bill.est, slug, year, monthIdx);
+
+        // Roll-up actual from breakdown if present
+        const breakdownRaw = repeating ? Storage.getItem(keyBreakdown(category,year,monthIdx,slug)) : null;
+        let breakdownRows=null;
+        if (breakdownRaw){
+          try{ const parsed=JSON.parse(breakdownRaw); if (Array.isArray(parsed)) breakdownRows=parsed; }catch(e){}
+        }
+
+        let actualVal = parseFloat(Storage.getItem(keyActual(category,year,monthIdx,slug)));
+        if (repeating && breakdownRows && breakdownRows.length){
+          const sumActual = breakdownRows.reduce((a,r)=>a+(parseFloat(r.actual)||0),0);
+          if (sumActual>0) actualVal = sumActual;
+        }
+
+        const dueVal = Storage.getItem(keyDue(category,year,monthIdx,slug)) || bill.defaultDue || "";
+        const notesVal = Storage.getItem(keyNotes(category,year,monthIdx,slug)) || bill.defaultNotes || "";
+
+        const tr=document.createElement("tr");
+
+        const nameTd=document.createElement("td"); nameTd.className="bill-col"; nameTd.textContent=bill.name;
+
+        const estTd=document.createElement("td"); estTd.className="est-col";
+        estTd.innerHTML = `<span class="money-display">${formatCurrency(effectiveEst)}</span>`;
+
+        const actualTd=document.createElement("td"); actualTd.className="actual-col";
+        const actualInput=document.createElement("input");
+        actualInput.type="number"; actualInput.step="0.01"; actualInput.min="0";
+        actualInput.value = isNaN(actualVal) ? "" : actualVal.toFixed(2);
+        actualTd.appendChild(actualInput);
+
+        const diffTd=document.createElement("td"); diffTd.className="diff-col";
+        setDiffCell(effectiveEst, isNaN(actualVal)?null:actualVal, diffTd);
+
+        const dueTd=document.createElement("td"); dueTd.className="due-col";
+        dueTd.textContent = shouldDisableDue(freqVal) ? "—" : (dueVal ? String(dueVal) : "");
+
+        const freqTd=document.createElement("td"); freqTd.className="freq-col"; freqTd.textContent=freqVal;
+
+        const notesTd=document.createElement("td"); notesTd.className="notes-col";
+        const noteBtn=document.createElement("button");
+        noteBtn.type="button"; noteBtn.className="icon-btn note-btn"; noteBtn.textContent="📝";
+        if (!notesVal) noteBtn.classList.add("note-empty");
+        noteBtn.title = notesVal ? "Notes (edit via ✏️)" : "No notes (add via ✏️)";
+        noteBtn.addEventListener("click", ()=>{
+          toggleRowEditor(tr, { category, item: bill, slug, year, monthIdx, hasPayoff:false });
+          const editor = tr.nextElementSibling;
+          if (editor && editor.classList.contains("row-edit-tr")){
+            const ta = editor.querySelector("textarea"); if (ta) ta.focus();
+          }
+        });
+        notesTd.appendChild(noteBtn);
+
+        const actionsTd=document.createElement("td"); actionsTd.className="actions-col";
+
+        if (repeating){
+          const breakdownBtn=document.createElement("button");
+          breakdownBtn.type="button"; breakdownBtn.className="icon-btn"; breakdownBtn.textContent="📋"; breakdownBtn.title="Breakdown";
+          breakdownBtn.addEventListener("click", ()=>{
+            openBreakdownModal({ category, slug, name: bill.name, freqVal, baseMonthlyEst: effectiveEst, year, monthIndex: monthIdx });
+          });
+          actionsTd.appendChild(breakdownBtn);
+        }
+
+        const editBtn=document.createElement("button");
+        editBtn.type="button"; editBtn.className="icon-btn"; editBtn.textContent="✏️";
+        editBtn.title="Edit (Est / Frequency / Due / Notes)";
+        editBtn.addEventListener("click", ()=>{
+          toggleRowEditor(tr, { category, item: bill, slug, year, monthIdx, hasPayoff:false });
+        });
+        actionsTd.appendChild(editBtn);
+
+        tr.append(nameTd, estTd, actualTd, diffTd, dueTd, freqTd, notesTd, actionsTd);
+        billsTableBody.appendChild(tr);
+
+        actualInput.addEventListener("input", ()=>{
+          const v=parseFloat(actualInput.value);
+          setDiffCell(effectiveEst, isNaN(v)?null:v, diffTd);
+        });
+
+        actualInput.addEventListener("change", ()=>{
+          const v=parseFloat(actualInput.value);
+          if (!isNaN(v)) Storage.setItem(keyActual(category,year,monthIdx,slug), v);
+          else Storage.removeItem(keyActual(category,year,monthIdx,slug));
+          updateTotals();
+        });
+      });
+    }
+
+    function renderDebtTable(tbody, category, items){
+      tbody.innerHTML="";
+      const year=selectedYear, monthIdx=selectedMonthIndex;
+
+      items.forEach(item=>{
+        const slug=slugify(item.name);
+        const payoff = getEffectivePayoff(category, item.payoff, slug, year, monthIdx);
+        const est = getEffectiveEst(category, item.est, slug, year, monthIdx);
+        const actualKey = keyActual(category, year, monthIdx, slug);
+        let actualVal = parseFloat(Storage.getItem(actualKey));
+
+        const freqVal = Storage.getItem(keyFreq(category,year,monthIdx,slug)) || item.freq || "Monthly";
+        const dueVal  = Storage.getItem(keyDue(category,year,monthIdx,slug)) || item.defaultDue || "";
+        const notesVal = Storage.getItem(keyNotes(category,year,monthIdx,slug)) || item.defaultNotes || "";
+
+        const tr=document.createElement("tr");
+
+        const nameTd=document.createElement("td"); nameTd.className="bill-col"; nameTd.textContent=item.name;
+
+        const payoffTd=document.createElement("td"); payoffTd.className="payoff-col";
+        payoffTd.innerHTML = `<span class="money-display">${formatCurrency(payoff)}</span>`;
+
+        const estTd=document.createElement("td"); estTd.className="est-col";
+        estTd.innerHTML = `<span class="money-display">${formatCurrency(est)}</span>`;
+
+        const actualTd=document.createElement("td"); actualTd.className="actual-col";
+        const actualInput=document.createElement("input");
+        actualInput.type="number"; actualInput.step="0.01"; actualInput.min="0";
+        actualInput.value = isNaN(actualVal) ? "" : actualVal.toFixed(2);
+        actualTd.appendChild(actualInput);
+
+        const diffTd=document.createElement("td"); diffTd.className="diff-col";
+        setDiffCell(est, isNaN(actualVal)?null:actualVal, diffTd);
+
+        const dueTd=document.createElement("td"); dueTd.className="due-col";
+        dueTd.textContent = shouldDisableDue(freqVal) ? "—" : (dueVal ? String(dueVal) : "");
+
+        const freqTd=document.createElement("td"); freqTd.className="freq-col"; freqTd.textContent=freqVal;
+
+        const notesTd=document.createElement("td"); notesTd.className="notes-col";
+        const noteBtn=document.createElement("button");
+        noteBtn.type="button"; noteBtn.className="icon-btn note-btn"; noteBtn.textContent="📝";
+        if (!notesVal) noteBtn.classList.add("note-empty");
+        noteBtn.title = notesVal ? "Notes (edit via ✏️)" : "No notes (add via ✏️)";
+        noteBtn.addEventListener("click", ()=>{
+          toggleRowEditor(tr, { category, item, slug, year, monthIdx, hasPayoff:true });
+          const editor = tr.nextElementSibling;
+          if (editor && editor.classList.contains("row-edit-tr")){
+            const ta = editor.querySelector("textarea"); if (ta) ta.focus();
+          }
+        });
+        notesTd.appendChild(noteBtn);
+
+        const actionsTd=document.createElement("td"); actionsTd.className="actions-col";
+        const editBtn=document.createElement("button");
+        editBtn.type="button"; editBtn.className="icon-btn"; editBtn.textContent="✏️";
+        editBtn.title="Edit (Payoff / Est / Frequency / Due / Notes)";
+        editBtn.addEventListener("click", ()=>{
+          toggleRowEditor(tr, { category, item, slug, year, monthIdx, hasPayoff:true });
+        });
+        actionsTd.appendChild(editBtn);
+
+        tr.append(nameTd, payoffTd, estTd, actualTd, diffTd, dueTd, freqTd, notesTd, actionsTd);
+        tbody.appendChild(tr);
+
+        actualInput.addEventListener("input", ()=>{
+          const v=parseFloat(actualInput.value);
+          setDiffCell(est, isNaN(v)?null:v, diffTd);
+        });
+
+        actualInput.addEventListener("change", ()=>{
+          const v=parseFloat(actualInput.value);
+          if (!isNaN(v)) Storage.setItem(actualKey, v);
+          else Storage.removeItem(actualKey);
+          updateTotals();
+        });
+      });
+    }
+
+    // =========================
+    // TOTALS + SUMMARY
+    // =========================
+    function getTotalEstimatedObligations(year, monthIdx){
+      const billsTotal = getAllBills().reduce((sum,b)=>{
+        const slug=slugify(b.name);
+        return sum + getEffectiveEst("bill", b.est, slug, year, monthIdx);
+      },0);
+
+      const ccTotal = creditCards.reduce((sum,c)=>{
+        const slug=slugify(c.name);
+        return sum + getEffectiveEst("cc", c.est, slug, year, monthIdx);
+      },0);
+
+      const loansTotal = loans.reduce((sum,l)=>{
+        const slug=slugify(l.name);
+        return sum + getEffectiveEst("loan", l.est, slug, year, monthIdx);
+      },0);
+
+      return billsTotal + ccTotal + loansTotal;
+    }
+
+    function getTotalActualObligations(year, monthIdx){
+      let total=0;
+      const cats = [
+        { category:"bill", items:getAllBills() },
+        { category:"cc", items:creditCards },
+        { category:"loan", items:loans }
+      ];
+      cats.forEach(c=>{
+        c.items.forEach(item=>{
+          const slug=slugify(item.name);
+          const val=parseFloat(Storage.getItem(keyActual(c.category,year,monthIdx,slug)));
+          if (!isNaN(val)) total += val;
+        });
+      });
+      return total;
+    }
+
+    function updateTotals(){
+      const year=selectedYear, m=selectedMonthIndex;
+
+      const income = getMonthlyIncome(year,m).total;
+      const estBills = getTotalEstimatedObligations(year,m);
+      const actualBills = getTotalActualObligations(year,m);
+
+      totalIncomeEl.textContent = formatCurrency(income);
+      totalEstBillsEl.textContent = formatCurrency(estBills);
+      totalActualBillsEl.textContent = formatCurrency(actualBills);
+
+      const estLeft = income - estBills;
+      const actLeft = income - actualBills;
+
+      estLeftoverEl.textContent = formatCurrency(estLeft);
+      actualLeftoverEl.textContent = formatCurrency(actLeft);
+
+      estLeftoverEl.classList.toggle("positive", estLeft>=0);
+      estLeftoverEl.classList.toggle("negative", estLeft<0);
+      actualLeftoverEl.classList.toggle("positive", actLeft>=0);
+      actualLeftoverEl.classList.toggle("negative", actLeft<0);
+
+      updateSummaryView();
+    }
+
+    function updateSummaryView(){
+      const year=selectedYear;
+      const currentMonth=selectedMonthIndex;
+
+      document.getElementById("summaryYearLabel").textContent = year;
+      document.getElementById("summaryMonthLabel").textContent = `${monthNames[currentMonth]} ${year}`;
+
+      // Full year income + est
+      let annualIncome=0, annualEst=0;
+      for (let m=0;m<12;m++){
+        annualIncome += getMonthlyIncome(year,m).total;
+        annualEst += getTotalEstimatedObligations(year,m);
+      }
+
+      // True YTD actual: Jan..selectedMonthIndex
+      let ytdActual=0;
+      for (let m=0;m<=currentMonth;m++){
+        ytdActual += getTotalActualObligations(year,m);
+      }
+
+      document.getElementById("summaryYearIncome").textContent = formatCurrency(annualIncome);
+      document.getElementById("summaryYearEstBills").textContent = formatCurrency(annualEst);
+      document.getElementById("summaryYearActualBills").textContent = formatCurrency(ytdActual);
+
+      const estLeft = annualIncome - annualEst;
+      const actLeft = (getMonthlyIncome(year,0).total === 0 && year < 2026) ? 0 : (annualIncome - ytdActual); // keep simple
+
+      const estEl = document.getElementById("summaryYearEstLeftover");
+      const actEl = document.getElementById("summaryYearActualLeftover");
+      estEl.textContent = formatCurrency(estLeft);
+      actEl.textContent = formatCurrency(actLeft);
+
+      estEl.classList.toggle("positive", estLeft>=0);
+      estEl.classList.toggle("negative", estLeft<0);
+      actEl.classList.toggle("positive", actLeft>=0);
+      actEl.classList.toggle("negative", actLeft<0);
+
+      // Debt snapshot table
+      const debtBody = document.querySelector("#debtSnapshotTable tbody");
+      debtBody.innerHTML="";
+      const allDebt = [...creditCards.map(d=>({...d,category:"cc"})), ...loans.map(d=>({...d,category:"loan"}))];
+
+      allDebt.forEach(item=>{
+        const slug=slugify(item.name);
+        const payoff = getEffectivePayoff(item.category, item.payoff, slug, year, currentMonth);
+        const est = getEffectiveEst(item.category, item.est, slug, year, currentMonth);
+        const months = est>0 ? payoff/est : null;
+
+        const tr=document.createElement("tr");
+        tr.innerHTML = `
+          <td>${item.name}</td>
+          <td>${formatCurrency(payoff)}</td>
+          <td>${formatCurrency(est)}</td>
+          <td>${months ? months.toFixed(1) : "—"}</td>
+        `;
+        debtBody.appendChild(tr);
+      });
+
+      // Monthly category breakdown
+      const breakdownBody = document.querySelector("#spendingBreakdownTable tbody");
+      breakdownBody.innerHTML="";
+
+      function catTotals(category){
+        const items = category==="bill" ? getAllBills() : category==="cc" ? creditCards : loans;
+        let est=0, act=0;
+        items.forEach(item=>{
+          const slug=slugify(item.name);
+          est += getEffectiveEst(category, item.est, slug, year, currentMonth);
+          const v=parseFloat(Storage.getItem(keyActual(category,year,currentMonth,slug)));
+          if (!isNaN(v)) act += v;
+        });
+        return { est, act };
+      }
+
+      const cats=[{k:"bill",label:"Bills"},{k:"cc",label:"Credit Cards"},{k:"loan",label:"Loans"}];
+      let estGrand=0, actGrand=0;
+
+      cats.forEach(c=>{
+        const t=catTotals(c.k);
+        estGrand += t.est; actGrand += t.act;
+        const diff=t.est-t.act;
+        const cls = diff>0 ? "diff-positive" : diff<0 ? "diff-negative" : "diff-zero";
+
+        const tr=document.createElement("tr");
+        tr.innerHTML = `
+          <td>${c.label}</td>
+          <td>${formatCurrency(t.est)}</td>
+          <td>${formatCurrency(t.act)}</td>
+          <td class="${cls}">${formatCurrency(diff)}</td>
+        `;
+        breakdownBody.appendChild(tr);
+      });
+
+      const totalDiff=estGrand-actGrand;
+      const totalCls = totalDiff>0 ? "diff-positive" : totalDiff<0 ? "diff-negative" : "diff-zero";
+      const tr=document.createElement("tr");
+      tr.innerHTML = `
+        <td><strong>Total</strong></td>
+        <td><strong>${formatCurrency(estGrand)}</strong></td>
+        <td><strong>${formatCurrency(actGrand)}</strong></td>
+        <td class="${totalCls}"><strong>${formatCurrency(totalDiff)}</strong></td>
+      `;
+      breakdownBody.appendChild(tr);
+    }
+
+    // =========================
+    // VIEW / ADD BILL / RENDER
+    // =========================
+    function renderForSelection(){
+      const label = `${monthNames[selectedMonthIndex]} ${selectedYear}`;
+      currentMonthLabel.textContent = label;
+      currentMonthLabelBills.textContent = label;
+      currentMonthLabelCC.textContent = label;
+      currentMonthLabelLoans.textContent = label;
+
+      renderIncomeSection();
+      renderBillsTable();
+      renderDebtTable(ccTableBody, "cc", creditCards);
+      renderDebtTable(loansTableBody, "loan", loans);
+      updateTotals();
+    }
+
+    function initAddBill(){
+      addBillBtn.addEventListener("click", ()=>{
+        const name = prompt("Name for new bill/expense:");
+        if (!name) return;
+        const estStr = prompt("Estimated monthly amount (number):", "0");
+        const est = parseFloat(estStr);
+        const custom = getCustomBills();
+        custom.push({ name, est: isNaN(est)?0:est, freq:"Monthly" });
+        saveCustomBills(custom);
+        renderForSelection();
+      });
+    }
+
+    function initViewToggle(){
+      function setView(v){
+        if (v==="monthly"){
+          monthlyView.style.display="";
+          summaryView.style.display="none";
+          viewMonthlyBtn.classList.add("active");
+          viewSummaryBtn.classList.remove("active");
+        } else {
+          monthlyView.style.display="none";
+          summaryView.style.display="";
+          viewMonthlyBtn.classList.remove("active");
+          viewSummaryBtn.classList.add("active");
+          updateSummaryView();
+        }
+      }
+      viewMonthlyBtn.addEventListener("click", ()=>setView("monthly"));
+      viewSummaryBtn.addEventListener("click", ()=>setView("summary"));
+    }
+
+    // =========================
+    // INIT
+    // =========================
+    (async function init(){
+      initYearSelect();
+      initMonthTabs();
+      initAddBill();
+      initViewToggle();
+
+      if (USE_SHEETS_STORAGE){
+        try {
+          await Storage.primeAllBudgetKeys();
+        } catch (e) {
+          console.error(e);
+          setSyncState("error","Sheets error");
+          alert("Could not connect to Google Sheets. Double-check SHEETS_API_URL, token, and deployment access.");
+        }
+      } else {
+        setSyncState("", "Local");
+      }
+
+      renderForSelection();
+    })();
+  </script>
+</body>
+</html>
